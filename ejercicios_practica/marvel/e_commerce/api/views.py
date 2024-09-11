@@ -1,3 +1,4 @@
+from django.contrib.auth import authenticate
 from django.forms.models import model_to_dict
 from django.shortcuts import get_object_or_404
 
@@ -26,6 +27,8 @@ from rest_framework.views import APIView
 from e_commerce.api.serializers import *
 from e_commerce.models import Comic
 
+from rest_framework.authentication import TokenAuthentication, BasicAuthentication
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 
 @api_view(http_method_names=['GET'])
 def comic_list_api_view(request):
@@ -224,4 +227,59 @@ class GetOneMarvelComicAPIView(RetrieveAPIView):
 #         )
 #         return Response(
 #             data=serializer.data, status=status.HTTP_200_OK
+#         )
+
+class LoginUserAPIView(APIView):
+
+    authentication_classes = ()
+    permission_classes = ()
+
+    def post(self, request):
+        # Realizamos validaciones a través del serializador
+        user_login_serializer = UserLoginSerializer(data=request.data)
+        if user_login_serializer.is_valid():
+            _username = request.data.get('username')
+            _password = request.data.get('password')
+
+            # Si el usuario existe y sus credenciales son validas,
+            # tratamos de obtener el TOKEN:
+            user = authenticate(username=_username, password=_password)
+            if user:
+                _token, _created = Token.objects.get_or_create(user=user)
+                return Response(
+                    data=TokenSerializer(instance=_token, many=False).data,
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            return Response(
+                data={'error': 'Invalid Credentials.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response(
+            data=user_login_serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+class GetWishListAPIView(ListAPIView):
+    queryset = WishList.objects.all()
+    serializer_class = WishListSerializer
+    permission_classes = (AllowAny,)
+    authentication_classes = []
+
+class PostWishListAPIView(CreateAPIView):
+    queryset = WishList.objects.all()
+    serializer_class = WishListSerializer
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (BasicAuthentication,)
+
+class UpdateWishListAPIView(UpdateAPIView):
+    queryset = WishList.objects.all()
+    serializer_class = WishListSerializer
+    permission_classes = (IsAuthenticated | IsAdminUser,)
+    authentication_classes = (TokenAuthentication,)
+
+class DeleteWishListAPIView(DestroyAPIView):
+    queryset = WishList.objects.all()
+    serializer_class = WishListSerializer
+    permission_classes = (IsAdminUser,)
+    authentication_classes = (TokenAuthentication,)
 #         )
