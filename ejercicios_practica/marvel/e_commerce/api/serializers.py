@@ -43,3 +43,10 @@ class TokenSerializer(serializers.ModelSerializer):
         
 
 # TODO: Realizar el serializador para el modelo de WishList
+class WishListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WishList
+        fields = '__all__'
+        
+
+# TODO: Realizar el serializador para el modelo de WishList
